@@ -1,7 +1,9 @@
 import { SEED_CATEGORIES } from "./constants";
 
-// Detect environment: use Turso in production, better-sqlite3 locally
-const isTurso = !!(process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN);
+// Check at runtime, not module load time
+function isTurso(): boolean {
+  return !!(process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN);
+}
 
 // ─── Turso (production) ───────────────────────────────────────────────
 
@@ -214,7 +216,7 @@ export async function getDb(): Promise<DbWrapper> {
 
   if (!globalForDb.__dbInit) {
     globalForDb.__dbInit = (async () => {
-      const wrapper = isTurso
+      const wrapper = isTurso()
         ? await createTursoWrapper()
         : await createSqliteWrapper();
       await initDb(wrapper);
