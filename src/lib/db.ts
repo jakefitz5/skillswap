@@ -12,9 +12,9 @@ let tursoClient: any = null;
 
 async function getTursoClient() {
   if (tursoClient) return tursoClient;
-  const { createClient } = await import("@libsql/client");
+  const { createClient } = await import("@libsql/client/web");
   tursoClient = createClient({
-    url: process.env.TURSO_DATABASE_URL!,
+    url: process.env.TURSO_DATABASE_URL!.replace("libsql://", "https://"),
     authToken: process.env.TURSO_AUTH_TOKEN!,
   });
   return tursoClient;
