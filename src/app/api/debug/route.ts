@@ -5,7 +5,7 @@ import { hashPassword } from "@/lib/auth";
 export async function GET() {
   const steps: string[] = [];
   try {
-    steps.push("0. TURSO_DATABASE_URL set: " + !!process.env.TURSO_DATABASE_URL);
+    steps.push("0. TURSO_DATABASE_URL: " + JSON.stringify(process.env.TURSO_DATABASE_URL));
     steps.push("0b. TURSO_AUTH_TOKEN set: " + !!process.env.TURSO_AUTH_TOKEN);
     steps.push("1. Getting db...");
     const db = await getDb();
