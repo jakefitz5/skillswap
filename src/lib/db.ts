@@ -86,28 +86,27 @@ async function createTursoWrapper(): Promise<DbWrapper> {
 
   return {
     async get(sql, ...params) {
-      const result = await client.execute(sql, params);
+      const result = await client.execute({ sql, args: params });
       return (result.rows[0] as DbRow) || undefined;
     },
     async all(sql, ...params) {
-      const result = await client.execute(sql, params);
+      const result = await client.execute({ sql, args: params });
       return result.rows as DbRow[];
     },
     async run(sql, ...params) {
-      const result = await client.execute(sql, params);
+      const result = await client.execute({ sql, args: params });
       return {
         lastInsertRowid: Number(result.lastInsertRowid ?? 0),
         changes: result.rowsAffected ?? 0,
       };
     },
     async exec(sql) {
-      // Split by semicolons for multi-statement exec
       const statements = sql
         .split(";")
         .map((s) => s.trim())
         .filter((s) => s.length > 0);
       for (const stmt of statements) {
-        await client.execute(stmt);
+        await client.execute({ sql: stmt, args: [] });
       }
     },
     async transaction(fn) {
