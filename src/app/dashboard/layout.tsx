@@ -22,13 +22,17 @@ export default function DashboardLayout({
 
   const teacherLinks = [
     { href: "/dashboard/teacher", label: "Requests" },
+    { href: "/dashboard/teacher/lessons", label: "Lessons" },
     { href: "/dashboard/teacher/profile", label: "Edit Profile" },
     { href: "/dashboard/teacher/reviews", label: "My Reviews" },
+    { href: "/dashboard/messages", label: "Messages" },
   ];
 
   const studentLinks = [
     { href: "/dashboard/student", label: "My Requests" },
+    { href: "/dashboard/student/lessons", label: "Lessons" },
     { href: "/dashboard/student/reviews", label: "My Reviews" },
+    { href: "/dashboard/messages", label: "Messages" },
   ];
 
   const links = user?.role === "teacher" ? teacherLinks : studentLinks;

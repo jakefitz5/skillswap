@@ -56,6 +56,9 @@ export async function GET(
       ...teacher,
       skills: JSON.parse((teacher.skills as string) || "[]"),
       availability: JSON.parse((teacher.availability as string) || "[]"),
+      certifications: JSON.parse((teacher.certifications as string) || "[]"),
+      social_links: JSON.parse((teacher.social_links as string) || "{}"),
+      portfolio_urls: JSON.parse((teacher.portfolio_urls as string) || "[]"),
       avg_rating: (teacher.avg_rating as number)
         ? Math.round((teacher.avg_rating as number) * 10) / 10
         : null,

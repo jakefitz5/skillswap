@@ -189,8 +189,83 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_reviews_teacher_id ON reviews(teacher_id);
 `;
 
+// Migrations — each runs in try/catch so already-applied ones are safe
+const MIGRATIONS = [
+  // Phase A: Enhanced teacher profiles
+  "ALTER TABLE teacher_profiles ADD COLUMN teaching_philosophy TEXT DEFAULT ''",
+  "ALTER TABLE teacher_profiles ADD COLUMN certifications TEXT DEFAULT '[]'",
+  "ALTER TABLE teacher_profiles ADD COLUMN social_links TEXT DEFAULT '{}'",
+  "ALTER TABLE teacher_profiles ADD COLUMN portfolio_urls TEXT DEFAULT '[]'",
+  "ALTER TABLE teacher_profiles ADD COLUMN years_experience INTEGER DEFAULT 0",
+  // Phase B: Scheduling
+  `CREATE TABLE IF NOT EXISTS teacher_availability_slots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teacher_profile_id INTEGER NOT NULL REFERENCES teacher_profiles(id),
+    day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    UNIQUE(teacher_profile_id, day_of_week, start_time)
+  )`,
+  `CREATE TABLE IF NOT EXISTS lesson_bookings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lesson_request_id INTEGER NOT NULL REFERENCES lesson_requests(id),
+    scheduled_date TEXT NOT NULL,
+    scheduled_time TEXT NOT NULL,
+    duration_minutes INTEGER NOT NULL DEFAULT 60,
+    status TEXT NOT NULL DEFAULT 'upcoming' CHECK (status IN ('upcoming','completed','cancelled')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  "ALTER TABLE lesson_requests ADD COLUMN proposed_date TEXT DEFAULT ''",
+  "ALTER TABLE lesson_requests ADD COLUMN proposed_time TEXT DEFAULT ''",
+  // Phase C: Messaging
+  `CREATE TABLE IF NOT EXISTS conversations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    participant_1 INTEGER NOT NULL REFERENCES users(id),
+    participant_2 INTEGER NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(participant_1, participant_2)
+  )`,
+  `CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id INTEGER NOT NULL REFERENCES conversations(id),
+    sender_id INTEGER NOT NULL REFERENCES users(id),
+    content TEXT NOT NULL,
+    is_read INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  "CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, created_at)",
+  "CREATE INDEX IF NOT EXISTS idx_messages_unread ON messages(conversation_id, is_read)",
+  // Phase D: Notifications
+  `CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT DEFAULT '',
+    link TEXT DEFAULT '',
+    is_read INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  "CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read, created_at)",
+];
+
 async function initDb(db: DbWrapper) {
   await db.exec(SCHEMA);
+
+  // Run migrations
+  for (const migration of MIGRATIONS) {
+    try {
+      if (migration.startsWith("ALTER") || migration.startsWith("CREATE INDEX")) {
+        await db.run(migration);
+      } else {
+        await db.exec(migration);
+      }
+    } catch {
+      // Column/table already exists — safe to ignore
+    }
+  }
 
   // Seed categories
   for (const cat of SEED_CATEGORIES) {

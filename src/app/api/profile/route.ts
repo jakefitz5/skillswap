@@ -37,6 +37,9 @@ export async function GET() {
       ...profile,
       skills: JSON.parse((profile.skills as string) || "[]"),
       availability: JSON.parse((profile.availability as string) || "[]"),
+      certifications: JSON.parse((profile.certifications as string) || "[]"),
+      social_links: JSON.parse((profile.social_links as string) || "{}"),
+      portfolio_urls: JSON.parse((profile.portfolio_urls as string) || "[]"),
       categoryIds,
     },
   });
@@ -59,6 +62,11 @@ export async function PUT(request: Request) {
       location,
       experienceLevel,
       isPublished,
+      teachingPhilosophy,
+      certifications,
+      socialLinks,
+      portfolioUrls,
+      yearsExperience,
     } = body;
 
     const db = await getDb();
@@ -81,6 +89,11 @@ export async function PUT(request: Request) {
         location = ?,
         experience_level = ?,
         is_published = ?,
+        teaching_philosophy = ?,
+        certifications = ?,
+        social_links = ?,
+        portfolio_urls = ?,
+        years_experience = ?,
         updated_at = datetime('now')
       WHERE user_id = ?`,
       bio || "",
@@ -90,6 +103,11 @@ export async function PUT(request: Request) {
       location || "",
       experienceLevel || "beginner",
       isPublished ? 1 : 0,
+      teachingPhilosophy || "",
+      JSON.stringify(certifications || []),
+      JSON.stringify(socialLinks || {}),
+      JSON.stringify(portfolioUrls || []),
+      yearsExperience || 0,
       user.userId
     );
 

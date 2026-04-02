@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { createNotification } from "@/lib/notifications";
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -62,6 +63,38 @@ export async function PATCH(
     status,
     Number(id)
   );
+
+  // Notify student of status change
+  const statusMessages: Record<string, string> = {
+    accepted: "Your lesson request has been accepted!",
+    declined: "Your lesson request was declined.",
+    completed: "Your lesson has been marked as complete. Leave a review!",
+  };
+  if (statusMessages[status]) {
+    await createNotification(db, {
+      userId: lessonRequest.student_id as number,
+      type: `request_${status}`,
+      title: statusMessages[status],
+      link: status === "completed" ? "/dashboard/student/reviews" : "/dashboard/student",
+    });
+  }
+
+  // Auto-create booking when request is accepted
+  if (status === "accepted") {
+    const fullRequest = await db.get("SELECT * FROM lesson_requests WHERE id = ?", Number(id));
+    if (fullRequest) {
+      const proposedDate = (fullRequest.proposed_date as string) || "";
+      const proposedTime = (fullRequest.proposed_time as string) || "";
+      if (proposedDate && proposedTime) {
+        await db.run(
+          "INSERT INTO lesson_bookings (lesson_request_id, scheduled_date, scheduled_time) VALUES (?, ?, ?)",
+          Number(id),
+          proposedDate,
+          proposedTime
+        );
+      }
+    }
+  }
 
   return NextResponse.json({ success: true });
 }

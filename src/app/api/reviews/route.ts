@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { createNotification } from "@/lib/notifications";
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -94,6 +95,14 @@ export async function POST(request: Request) {
       rating,
       comment || ""
     );
+
+    await createNotification(db, {
+      userId: lessonRequest.teacher_id,
+      type: "new_review",
+      title: "New Review",
+      message: `${user.name} left you a ${rating}-star review`,
+      link: "/dashboard/teacher/reviews",
+    });
 
     return NextResponse.json(
       { id: result.lastInsertRowid, success: true },

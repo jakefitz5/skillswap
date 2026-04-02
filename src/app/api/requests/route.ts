@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { createNotification } from "@/lib/notifications";
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -93,6 +94,14 @@ export async function POST(request: Request) {
       message,
       preferredTime
     );
+
+    await createNotification(db, {
+      userId: teacherId,
+      type: "lesson_request",
+      title: "New Lesson Request",
+      message: `${user.name} wants to take a lesson with you`,
+      link: "/dashboard/teacher",
+    });
 
     return NextResponse.json(
       { id: result.lastInsertRowid, success: true },
