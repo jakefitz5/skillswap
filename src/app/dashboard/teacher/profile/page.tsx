@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { EXPERIENCE_LEVELS } from "@/lib/constants";
-import type { Certification, SocialLinks, PortfolioItem } from "@/types";
+import type { Certification, SocialLinks, PortfolioItem, AvailabilitySlot } from "@/types";
+import AvailabilityEditor from "@/components/scheduling/AvailabilityEditor";
 
 interface Category {
   id: number;
@@ -31,12 +32,15 @@ export default function TeacherProfileEdit() {
   const [certifications, setCertifications] = useState<Certification[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
   const [portfolioUrls, setPortfolioUrls] = useState<PortfolioItem[]>([]);
+  const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
 
   useEffect(() => {
     Promise.all([
       fetch("/api/profile").then((r) => r.json()),
       fetch("/api/categories").then((r) => r.json()),
-    ]).then(([profileData, catData]) => {
+      fetch("/api/availability").then((r) => r.json()),
+    ]).then(([profileData, catData, availData]) => {
+      setAvailabilitySlots(availData.slots || []);
       setCategories(catData.categories);
       if (profileData.profile) {
         const p = profileData.profile;
@@ -124,25 +128,32 @@ export default function TeacherProfileEdit() {
     setSaving(true);
     setSaved(false);
 
-    await fetch("/api/profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        bio,
-        hourlyRate: Number(hourlyRate) || 0,
-        skills,
-        categoryIds,
-        availability: availability.filter(Boolean),
-        location,
-        experienceLevel,
-        isPublished,
-        teachingPhilosophy,
-        yearsExperience: Number(yearsExperience) || 0,
-        certifications: certifications.filter((c) => c.name),
-        socialLinks,
-        portfolioUrls: portfolioUrls.filter((p) => p.url),
+    await Promise.all([
+      fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bio,
+          hourlyRate: Number(hourlyRate) || 0,
+          skills,
+          categoryIds,
+          availability: availability.filter(Boolean),
+          location,
+          experienceLevel,
+          isPublished,
+          teachingPhilosophy,
+          yearsExperience: Number(yearsExperience) || 0,
+          certifications: certifications.filter((c) => c.name),
+          socialLinks,
+          portfolioUrls: portfolioUrls.filter((p) => p.url),
+        }),
       }),
-    });
+      fetch("/api/availability", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slots: availabilitySlots }),
+      }),
+    ]);
 
     setSaving(false);
     setSaved(true);
@@ -399,9 +410,16 @@ export default function TeacherProfileEdit() {
           )}
         </div>
 
-        {/* Availability */}
+        {/* Structured Availability */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Availability</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Weekly Availability</label>
+          <p className="text-xs text-gray-400 mb-3">Set your recurring weekly schedule</p>
+          <AvailabilityEditor slots={availabilitySlots} onChange={setAvailabilitySlots} />
+        </div>
+
+        {/* Additional availability notes */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Additional Availability Notes</label>
           <div className="space-y-2">
             {availability.map((slot, i) => (
               <div key={i} className="flex gap-2">
@@ -409,7 +427,7 @@ export default function TeacherProfileEdit() {
                   type="text"
                   value={slot}
                   onChange={(e) => updateAvailability(i, e.target.value)}
-                  placeholder="e.g., Monday 9am - 12pm"
+                  placeholder="e.g., Available for weekend workshops, flexible during summer"
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                 />
                 {availability.length > 1 && (
@@ -421,7 +439,7 @@ export default function TeacherProfileEdit() {
             ))}
           </div>
           <button type="button" onClick={addAvailabilitySlot} className="mt-2 text-sm text-indigo-600 hover:text-indigo-500 font-medium">
-            + Add time slot
+            + Add note
           </button>
         </div>
 

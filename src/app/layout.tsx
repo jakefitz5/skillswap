@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import ToastProvider from "@/components/providers/ToastProvider";
 
 const geistSans = Geist({
@@ -26,8 +27,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-[family-name:var(--font-geist-sans)]">
         <ToastProvider>
           <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <main className="flex-1 pb-16 sm:pb-0">{children}</main>
+          <Footer className="hidden sm:block" />
+          <MobileBottomNav />
         </ToastProvider>
       </body>
     </html>

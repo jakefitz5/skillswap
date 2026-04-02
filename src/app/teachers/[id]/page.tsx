@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import Avatar from "@/components/ui/Avatar";
 import StarRating from "@/components/ui/StarRating";
+import WeeklyCalendar from "@/components/scheduling/WeeklyCalendar";
 import Badge from "@/components/ui/Badge";
 import { CATEGORY_ICONS } from "@/lib/constants";
 
@@ -48,6 +49,8 @@ export default function TeacherProfilePage({
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [preferredTime, setPreferredTime] = useState("");
+  const [proposedDate, setProposedDate] = useState("");
+  const [proposedTime, setProposedTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
   const [error, setError] = useState("");
@@ -223,11 +226,22 @@ export default function TeacherProfilePage({
         </div>
       )}
 
-      {/* Availability */}
+      {/* Weekly Calendar */}
+      <WeeklyCalendar
+        teacherId={teacher.user_id}
+        onSelectSlot={user?.role === "student" ? (date, time) => {
+          setProposedDate(date);
+          setProposedTime(time);
+          setPreferredTime(`${new Date(date + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })} at ${time}`);
+          document.getElementById("lesson-request-form")?.scrollIntoView({ behavior: "smooth" });
+        } : undefined}
+      />
+
+      {/* Availability notes */}
       {teacher.availability.length > 0 && (
         <div className="mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-2">
-            Availability
+            Availability Notes
           </h2>
           <div className="space-y-1">
             {teacher.availability.map((slot, i) => (
@@ -336,7 +350,7 @@ export default function TeacherProfilePage({
       )}
 
       {/* Lesson Request Form */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
+      <div id="lesson-request-form" className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Request a Lesson
         </h2>
@@ -376,19 +390,44 @@ export default function TeacherProfilePage({
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Preferred Time
-              </label>
-              <input
-                type="text"
-                required
-                value={preferredTime}
-                onChange={(e) => setPreferredTime(e.target.value)}
-                placeholder="e.g., Saturday mornings, weekday evenings"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Preferred Date
+                </label>
+                <input
+                  type="date"
+                  value={proposedDate}
+                  onChange={(e) => {
+                    setProposedDate(e.target.value);
+                    if (e.target.value && proposedTime) {
+                      setPreferredTime(`${new Date(e.target.value + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })} at ${proposedTime}`);
+                    }
+                  }}
+                  min={new Date().toISOString().split("T")[0]}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Preferred Time
+                </label>
+                <input
+                  type="time"
+                  value={proposedTime}
+                  onChange={(e) => {
+                    setProposedTime(e.target.value);
+                    if (proposedDate && e.target.value) {
+                      setPreferredTime(`${new Date(proposedDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })} at ${e.target.value}`);
+                    }
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                />
+              </div>
             </div>
+            {preferredTime && (
+              <p className="text-sm text-indigo-600 -mt-2">{preferredTime}</p>
+            )}
             <button
               type="submit"
               disabled={submitting}
